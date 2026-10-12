@@ -196,7 +196,6 @@ def backtrack(
             if solution is not None:
                 return [new] + solution
 
-
         return None
 
     result = backtrack_recursive(start_state)
