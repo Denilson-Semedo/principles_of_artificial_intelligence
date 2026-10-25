@@ -193,13 +193,27 @@ def graph_search(problem, f) -> tuple[list[Actions], list[State]]:
             if not OPEN:
                 # return the goal node, the dict of parents and expanded nodes
                 return None, pi, expanded_nodes
-            pass # TODO
+            # pass # TODO
             # Hint: Pseudocode from lecture 5 (graphsearch) on slide 10
             #       Make sure to be familiar with sets in Python! (- operator, add)
             #       Add a node to the list of expanded_nodes once a node gets 
             #       selected for expanding!
             #       In these search problems, the cost is always 1
             #       (all moves cost the same)
+            n = min(OPEN, key=f)
+            expanded_nodes.append(n)
+            if problem.is_goal_state(n):
+                return n, pi, expanded_nodes
+            OPEN.remove(n)
+            children = problem.next_states(n) - {pi[n]}
+            for m in children:
+                if m not in G or g[n] + 1 < g[m]:
+                    pi[m] = n
+                    g[m] = g[n] + 1
+                    OPEN.add(m)
+                G.add(m)
+            G.update(children)
+
 
     def reconstruct(goal_node, pi) -> tuple[list[Actions], list[State]]:
         """Reconstructs the path and the actions from the goal node and the
@@ -239,7 +253,8 @@ class EvaluationFunctionDFS(EvaluationFunction):
 
 class EvaluationFunctionBFS(EvaluationFunction):
     def __call__(self, node):
-        pass # TODO
+        #pass # TODO
+        return self.g[node]
 
 
 class EvaluationFunctionLF(EvaluationFunction):
@@ -248,7 +263,8 @@ class EvaluationFunctionLF(EvaluationFunction):
         self.h = h
 
     def __call__(self, node):
-        pass # TODO
+        #pass # TODO
+        return self.h(node)
 
 
 class EvaluationFunctionAStar(EvaluationFunction):
@@ -257,7 +273,8 @@ class EvaluationFunctionAStar(EvaluationFunction):
         self.h = h
 
     def __call__(self, node):
-        pass # TODO
+        # pass # TODO
+        return self.g[node] + self.h(node)
 
 
 # The GUI runs the search algorithms through these functions.
@@ -316,9 +333,9 @@ def manhattan(problem: SearchProblem):
     """
 
     def heuristics(state: State):
-        pass # TODO
+        # pass # TODO
         # Hint: The sum of absolute distance (from target position) vertically + horisontally (for each target_position)
-
+        return sum( abs(state.position.row - target_position.row) + abs(state.position.col - target_position.col) for target_position in problem.target_positions(state))
     return heuristics
 
 
@@ -330,27 +347,46 @@ class EatDonutsProblem(SearchProblem):
     and then get to the door."""
 
     def __init__(self, game_logic: GameLogic):
-        pass # TODO
+        # pass # TODO
         # Hint: Almost identical to the __init__ of the CatToDoorProblem
         #       You need to also consider the donut positions along with the cat positions
         #       The State is now EatDonutsState, use this info as a hint
+        cat_position = game_logic.collect_positions(LabyrinthFields.Cat)[0]
+        donuts = game_logic.collect_positions(LabyrinthFields.Donut)
+        self.state = EatDonutsState(cat_position, donuts)
+        self.door_positions = game_logic.collect_positions(LabyrinthFields.Door)
+        self.walls = [
+            [field == LabyrinthFields.Wall for field in row]
+            for row in game_logic.board
+        ]
+        self.m = len(self.walls)
+        self.n = len(self.walls[0])
 
     def target_positions(self, state : EatDonutsState) -> tuple[Position, ...]:
         """Return the positions of the donuts if there are any left,
         otherwise return the positions of the doors"""
-        pass # TODO
+        # pass # TODO
         # Hint: If there are donuts left, then those are the targets.
         #       Otherwise, it's the door(s)
+        return state.donuts if state.donuts else self.door_positions
 
     def is_goal_state(self, state: EatDonutsState) -> bool:
-        pass # TODO
+        # pass # TODO
         # Hint: If all the donuts are eaten, and we're at the door
+        return not state.donuts and state.position in self.door_positions
 
     def next_states(self, state: EatDonutsState) -> set[EatDonutsState]:
         pass # TODO
         # Hint: Very similar to next_states in CatToDoorProblem, but
         #       we pass the donuts to ns along with the new_position as the parameters 
         #       of the init method (State is EatDonutsState here!)
+        next_state = set()
+        for action in Actions:
+            new_position = state.position + Directions[action]
+            if ( 0 <= new_position.row < self.m and 0 <= new_position.col < self.n and not self.walls[new_position.row][new_position.col] ):
+                remaining = tuple(donut for donut in state.donuts if donut != new_position)
+                next_state.add(EatDonutsState(new_position, remaining))
+        return next_state
 
 
 # END OF YOUR CODE
